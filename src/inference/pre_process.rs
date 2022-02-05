@@ -1,6 +1,5 @@
-use image::imageops::colorops::grayscale;
-use image::{RgbImage, GrayImage, ImageBuffer};
 use image::imageops::resize;
+use image::{GrayImage, ImageBuffer};
 
 use crate::common::RawImage;
 
@@ -146,13 +145,7 @@ pub fn raw_to_img(im: &RawImage) -> GrayImage {
         let index = get_index(width, x, y);
         let p = data[index];
         let pixel = (p * 255.0) as u32;
-        let pixel: u8 = if pixel > 255 {
-            255
-        } else if pixel < 0 {
-            0
-        } else {
-            pixel as u8
-        };
+        let pixel: u8 = if pixel > 255 { 255 } else { pixel as u8 };
         image::Luma([pixel])
     });
 
@@ -166,14 +159,8 @@ pub fn uint8_raw_to_img(im: &RawImage) -> GrayImage {
 
     let img = ImageBuffer::from_fn(width, height, |x, y| {
         let index = get_index(width, x, y);
-        let pixel =  data[index] as u32;
-        let pixel: u8 = if pixel > 255 {
-            255
-        } else if pixel < 0 {
-            0
-        } else {
-            pixel as u8
-        };
+        let pixel = data[index] as u32;
+        let pixel: u8 = if pixel > 255 { 255 } else { pixel as u8 };
         image::Luma([pixel])
     });
 
@@ -239,9 +226,5 @@ pub fn image_to_raw(im: GrayImage) -> RawImage {
         }
     }
 
-    RawImage {
-        data,
-        w,
-        h,
-    }
+    RawImage { data, w, h }
 }

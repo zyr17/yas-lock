@@ -2,113 +2,127 @@ use std::convert::From;
 use std::fs::File;
 use std::io::prelude::*;
 
-use serde::ser::{Serialize, Serializer, SerializeMap};
+use serde::ser::{Serialize, SerializeMap, Serializer};
 
-use crate::artifact::internal_artifact::{ArtifactStatName, ArtifactSetName, ArtifactSlot, InternalArtifact, ArtifactStat};
-
+use crate::artifact::internal_artifact::{
+    ArtifactSetKey, ArtifactSlotKey, ArtifactStat, ArtifactStatKey, InternalArtifact,
+};
 
 type MonaArtifact = InternalArtifact;
 
-impl ArtifactStatName {
+impl ArtifactStatKey {
     pub fn to_mona(&self) -> String {
         let temp = match self {
-            ArtifactStatName::HealingBonus => "cureEffect",
-            ArtifactStatName::CriticalDamage => "criticalDamage",
-            ArtifactStatName::Critical => "critical",
-            ArtifactStatName::Atk => "attackStatic",
-            ArtifactStatName::AtkPercentage => "attackPercentage",
-            ArtifactStatName::ElementalMastery => "elementalMastery",
-            ArtifactStatName::Recharge => "recharge",
-            ArtifactStatName::HpPercentage => "lifePercentage",
-            ArtifactStatName::Hp => "lifeStatic",
-            ArtifactStatName::DefPercentage => "defendPercentage",
-            ArtifactStatName::Def => "defendStatic",
-            ArtifactStatName::ElectroBonus => "thunderBonus",
-            ArtifactStatName::PyroBonus => "fireBonus",
-            ArtifactStatName::HydroBonus => "waterBonus",
-            ArtifactStatName::CryoBonus => "iceBonus",
-            ArtifactStatName::AnemoBonus => "windBonus",
-            ArtifactStatName::GeoBonus => "rockBonus",
-            ArtifactStatName::PhysicalBonus => "physicalBonus",
+            ArtifactStatKey::HealingBonus => "cureEffect",
+            ArtifactStatKey::CriticalDamage => "criticalDamage",
+            ArtifactStatKey::Critical => "critical",
+            ArtifactStatKey::Atk => "attackStatic",
+            ArtifactStatKey::AtkPercentage => "attackPercentage",
+            ArtifactStatKey::ElementalMastery => "elementalMastery",
+            ArtifactStatKey::Recharge => "recharge",
+            ArtifactStatKey::HpPercentage => "lifePercentage",
+            ArtifactStatKey::Hp => "lifeStatic",
+            ArtifactStatKey::DefPercentage => "defendPercentage",
+            ArtifactStatKey::Def => "defendStatic",
+            ArtifactStatKey::ElectroBonus => "thunderBonus",
+            ArtifactStatKey::PyroBonus => "fireBonus",
+            ArtifactStatKey::HydroBonus => "waterBonus",
+            ArtifactStatKey::CryoBonus => "iceBonus",
+            ArtifactStatKey::AnemoBonus => "windBonus",
+            ArtifactStatKey::GeoBonus => "rockBonus",
+            ArtifactStatKey::PhysicalBonus => "physicalBonus",
         };
         String::from(temp)
     }
 }
 
-impl ArtifactSetName {
+impl ArtifactSetKey {
     pub fn to_mona(&self) -> String {
         let temp = match self {
-            ArtifactSetName::ArchaicPetra => "archaicPetra",
-            ArtifactSetName::HeartOfDepth => "heartOfDepth",
-            ArtifactSetName::BlizzardStrayer => "blizzardStrayer",
-            ArtifactSetName::RetracingBolide => "retracingBolide",
-            ArtifactSetName::NoblesseOblige => "noblesseOblige",
-            ArtifactSetName::GladiatorFinale => "gladiatorFinale",
-            ArtifactSetName::MaidenBeloved => "maidenBeloved",
-            ArtifactSetName::ViridescentVenerer => "viridescentVenerer",
-            ArtifactSetName::LavaWalker => "lavaWalker",
-            ArtifactSetName::CrimsonWitch => "crimsonWitch",
-            ArtifactSetName::ThunderSmoother => "thunderSmoother",
-            ArtifactSetName::ThunderingFury => "thunderingFury",
-            ArtifactSetName::BloodstainedChivalry => "bloodstainedChivalry",
-            ArtifactSetName::WandererTroupe => "wandererTroupe",
-            ArtifactSetName::Scholar => "scholar",
-            ArtifactSetName::Gambler => "gambler",
-            ArtifactSetName::TinyMiracle => "tinyMiracle",
-            ArtifactSetName::MartialArtist => "martialArtist",
-            ArtifactSetName::BraveHeart => "braveHeart",
-            ArtifactSetName::ResolutionOfSojourner => "resolutionOfSojourner",
-            ArtifactSetName::DefenderWill => "defenderWill",
-            ArtifactSetName::Berserker => "berserker",
-            ArtifactSetName::Instructor => "instructor",
-            ArtifactSetName::Exile => "exile",
-            ArtifactSetName::Adventurer => "adventurer",
-            ArtifactSetName::LuckyDog => "luckyDog",
-            ArtifactSetName::TravelingDoctor => "travelingDoctor",
-            ArtifactSetName::PrayersForWisdom => "prayersForWisdom",
-            ArtifactSetName::PrayersToSpringtime => "prayersToSpringtime",
-            ArtifactSetName::PrayersForIllumination => "prayersForIllumination",
-            ArtifactSetName::PrayersForDestiny => "prayersForDestiny",
-            ArtifactSetName::PaleFlame => "paleFlame",
-            ArtifactSetName::TenacityOfTheMillelith => "tenacityOfTheMillelith",
-            ArtifactSetName::EmblemOfSeveredFate => "emblemOfSeveredFate",
-            ArtifactSetName::ShimenawaReminiscence => "shimenawaReminiscence",
-            ArtifactSetName::HuskOfOpulentDreams => "huskOfOpulentDreams",
-            ArtifactSetName::OceanHuedClam => "oceanHuedClam",
+            ArtifactSetKey::ArchaicPetra => "archaicPetra",
+            ArtifactSetKey::HeartOfDepth => "heartOfDepth",
+            ArtifactSetKey::BlizzardStrayer => "blizzardStrayer",
+            ArtifactSetKey::RetracingBolide => "retracingBolide",
+            ArtifactSetKey::NoblesseOblige => "noblesseOblige",
+            ArtifactSetKey::GladiatorsFinale => "gladiatorFinale",
+            ArtifactSetKey::MaidenBeloved => "maidenBeloved",
+            ArtifactSetKey::ViridescentVenerer => "viridescentVenerer",
+            ArtifactSetKey::Lavawalker => "lavaWalker",
+            ArtifactSetKey::CrimsonWitchOfFlames => "crimsonWitch",
+            ArtifactSetKey::Thundersoother => "thunderSmoother",
+            ArtifactSetKey::ThunderingFury => "thunderingFury",
+            ArtifactSetKey::BloodstainedChivalry => "bloodstainedChivalry",
+            ArtifactSetKey::WanderersTroupe => "wandererTroupe",
+            ArtifactSetKey::Scholar => "scholar",
+            ArtifactSetKey::Gambler => "gambler",
+            ArtifactSetKey::TinyMiracle => "tinyMiracle",
+            ArtifactSetKey::MartialArtist => "martialArtist",
+            ArtifactSetKey::BraveHeart => "braveHeart",
+            ArtifactSetKey::ResolutionOfSojourner => "resolutionOfSojourner",
+            ArtifactSetKey::DefenderWill => "defenderWill",
+            ArtifactSetKey::Berserker => "berserker",
+            ArtifactSetKey::Instructor => "instructor",
+            ArtifactSetKey::Exile => "exile",
+            ArtifactSetKey::Adventurer => "adventurer",
+            ArtifactSetKey::LuckyDog => "luckyDog",
+            ArtifactSetKey::TravelingDoctor => "travelingDoctor",
+            ArtifactSetKey::PrayersForWisdom => "prayersForWisdom",
+            ArtifactSetKey::PrayersToSpringtime => "prayersToSpringtime",
+            ArtifactSetKey::PrayersForIllumination => "prayersForIllumination",
+            ArtifactSetKey::PrayersForDestiny => "prayersForDestiny",
+            ArtifactSetKey::PaleFlame => "paleFlame",
+            ArtifactSetKey::TenacityOfTheMillelith => "tenacityOfTheMillelith",
+            ArtifactSetKey::EmblemOfSeveredFate => "emblemOfSeveredFate",
+            ArtifactSetKey::ShimenawasReminiscence => "shimenawaReminiscence",
+            ArtifactSetKey::HuskOfOpulentDreams => "huskOfOpulentDreams",
+            ArtifactSetKey::OceanHuedClam => "oceanHuedClam",
         };
         String::from(temp)
     }
 }
 
-impl ArtifactSlot {
+impl ArtifactSlotKey {
     pub fn to_mona(&self) -> String {
         let temp = match self {
-            ArtifactSlot::Flower => "flower",
-            ArtifactSlot::Feather => "feather",
-            ArtifactSlot::Sand => "sand",
-            ArtifactSlot::Goblet => "cup",
-            ArtifactSlot::Head => "head",
+            ArtifactSlotKey::Flower => "flower",
+            ArtifactSlotKey::Plume => "feather",
+            ArtifactSlotKey::Sands => "sand",
+            ArtifactSlotKey::Goblet => "cup",
+            ArtifactSlotKey::Circlet => "head",
         };
         String::from(temp)
     }
 }
 
 impl Serialize for ArtifactStat {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
         let mut root = serializer.serialize_map(Some(2))?;
-        root.serialize_entry("name", &self.name.to_mona());
-        root.serialize_entry("value", &self.value);
+        root.serialize_entry("name", &self.key.to_mona())?;
+        let value = match self.key {
+            ArtifactStatKey::Atk
+            | ArtifactStatKey::ElementalMastery
+            | ArtifactStatKey::Hp
+            | ArtifactStatKey::Def => self.value,
+            _ => self.value / 100.0,
+        };
+        root.serialize_entry("value", &value)?;
         root.end()
     }
 }
 
 impl Serialize for MonaArtifact {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
         let mut root = serializer.serialize_map(Some(7))?;
 
-        root.serialize_entry("setName", &self.set_name.to_mona());
-        root.serialize_entry("position", &self.slot.to_mona());
-        root.serialize_entry("mainTag", &self.main_stat);
+        root.serialize_entry("setName", &self.set_key.to_mona())?;
+        root.serialize_entry("position", &self.slot_key.to_mona())?;
+        root.serialize_entry("mainTag", &self.main_stat)?;
 
         let mut sub_stats: Vec<&ArtifactStat> = vec![];
         if let Some(ref s) = self.sub_stat_1 {
@@ -131,10 +145,10 @@ impl Serialize for MonaArtifact {
         // subs.end();
         // subs.
 
-        root.serialize_entry("normalTags", &sub_stats);
-        root.serialize_entry("omit", &false);
-        root.serialize_entry("level", &self.level);
-        root.serialize_entry("star", &self.star);
+        root.serialize_entry("normalTags", &sub_stats)?;
+        root.serialize_entry("omit", &false)?;
+        root.serialize_entry("level", &self.level)?;
+        root.serialize_entry("star", &self.rarity)?;
 
         root.end()
     }
@@ -150,14 +164,17 @@ pub struct MonaFormat<'a> {
 }
 
 impl<'a> Serialize for MonaFormat<'a> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
         let mut root = serializer.serialize_map(Some(6))?;
-        root.serialize_entry("version", &self.version);
-        root.serialize_entry("flower", &self.flower);
-        root.serialize_entry("feather", &self.feather);
-        root.serialize_entry("sand", &self.sand);
-        root.serialize_entry("cup", &self.cup);
-        root.serialize_entry("head", &self.head);
+        root.serialize_entry("version", &self.version)?;
+        root.serialize_entry("flower", &self.flower)?;
+        root.serialize_entry("feather", &self.feather)?;
+        root.serialize_entry("sand", &self.sand)?;
+        root.serialize_entry("cup", &self.cup)?;
+        root.serialize_entry("head", &self.head)?;
         root.end()
     }
 }
@@ -171,12 +188,12 @@ impl<'a> MonaFormat<'a> {
         let mut head: Vec<&MonaArtifact> = Vec::new();
 
         for art in results.iter() {
-            match art.slot {
-                ArtifactSlot::Flower => flower.push(art),
-                ArtifactSlot::Feather => feather.push(art),
-                ArtifactSlot::Sand => sand.push(art),
-                ArtifactSlot::Goblet => cup.push(art),
-                ArtifactSlot::Head => head.push(art),
+            match art.slot_key {
+                ArtifactSlotKey::Flower => flower.push(art),
+                ArtifactSlotKey::Plume => feather.push(art),
+                ArtifactSlotKey::Sands => sand.push(art),
+                ArtifactSlotKey::Goblet => cup.push(art),
+                ArtifactSlotKey::Circlet => head.push(art),
             }
         }
 
@@ -200,7 +217,7 @@ impl<'a> MonaFormat<'a> {
 
         match file.write_all(s.as_bytes()) {
             Err(why) => panic!("couldn't write to {}: {}", path, why),
-            _ => {},
+            _ => {}
         }
     }
 }

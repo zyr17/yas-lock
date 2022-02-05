@@ -1,14 +1,13 @@
 use crate::capture;
-use crate::inference::pre_process::{pre_process, to_gray, raw_to_img, uint8_raw_to_img};
+use crate::inference::pre_process::{pre_process, raw_to_img, to_gray, uint8_raw_to_img};
 use crate::info::info::ScanInfo;
 use image::{GrayImage, RgbImage};
-use crate::capture::capture_absolute;
+use log::info;
 use std::time::SystemTime;
-use log::{info};
 
-pub mod utils;
 pub mod buffer;
 pub mod color;
+pub mod utils;
 
 #[derive(Debug)]
 pub struct PixelRect {

@@ -1,47 +1,20 @@
-#[cfg(windows)] extern crate winapi;
-use std::io::Error;
-use std::ffi::{OsStr};
-use std::iter::once;
-use std::os::windows::ffi::OsStrExt;
+#[cfg(windows)]
+extern crate winapi;
+use std::mem::size_of;
 use std::ptr::null_mut;
-use std::mem::{size_of, transmute};
 
-use winapi::um::winuser::{
-    FindWindowW,
-    GetDC,
-    ReleaseDC,
-    SetThreadDpiAwarenessContext,
-    GetClientRect,
-    SetForegroundWindow
-};
-use winapi::shared::windef::{HWND, HDC, RECT, HBITMAP, DPI_AWARENESS_CONTEXT};
-use winapi::shared::ntdef::NULL;
+use winapi::ctypes::c_void;
+use winapi::shared::windef::{HBITMAP, HDC};
 use winapi::um::wingdi::{
-    CreateCompatibleDC,
-    DeleteObject,
-    BitBlt,
-    SRCCOPY,
-    CreateCompatibleBitmap,
-    SelectObject,
-    GetObjectW,
-    BITMAP,
-    BITMAPINFOHEADER,
-    BI_RGB,
-    GetDIBits,
-    BITMAPINFO,
-    DIB_RGB_COLORS,
+    BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, DeleteObject, GetDIBits, GetObjectW,
+    SelectObject, BITMAP, BITMAPINFO, BITMAPINFOHEADER, BI_RGB, DIB_RGB_COLORS, SRCCOPY,
 };
-use winapi::ctypes::{c_void};
-use winapi::um::winbase::{GlobalAlloc, GHND, GlobalLock};
+use winapi::um::winuser::{GetDC, ReleaseDC};
 
 use image::ImageBuffer;
 
-use crate::common::{PixelRect, PixelRectBound};
 use crate::common::color::Color;
-use winapi::shared::windef::DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE;
-use self::winapi::um::wingdi::{GetDeviceCaps, HORZRES};
-use self::winapi::shared::windef::DPI_AWARENESS_CONTEXT_SYSTEM_AWARE;
-
+use crate::common::PixelRect;
 
 #[cfg(windows)]
 unsafe fn unsafe_capture(rect: &PixelRect) -> Result<Vec<u8>, String> {
@@ -70,7 +43,7 @@ unsafe fn unsafe_capture(rect: &PixelRect) -> Result<Vec<u8>, String> {
         dc_window,
         rect.left,
         rect.top,
-        SRCCOPY
+        SRCCOPY,
     );
     if result == 0 {
         return Err(String::from("BitBlt failed"));
@@ -88,7 +61,7 @@ unsafe fn unsafe_capture(rect: &PixelRect) -> Result<Vec<u8>, String> {
     GetObjectW(
         hbm as *mut c_void,
         size_of::<BITMAP>() as i32,
-        (&mut bitmap) as *mut BITMAP as *mut c_void
+        (&mut bitmap) as *mut BITMAP as *mut c_void,
     );
     // println!("bitmap width: {}", bitmap.bmWidth);
     // println!("bitmap height: {}", bitmap.bmHeight);
@@ -125,7 +98,7 @@ unsafe fn unsafe_capture(rect: &PixelRect) -> Result<Vec<u8>, String> {
         // lpbitmap,
         buffer.as_mut_ptr() as *mut c_void,
         (&mut bi) as *mut BITMAPINFOHEADER as *mut BITMAPINFO,
-        DIB_RGB_COLORS
+        DIB_RGB_COLORS,
     );
 
     // let buffer: Vec<u8> = Vec::from_raw_parts(lpbitmap as *mut u8, bitmap_size, bitmap_size);
@@ -144,9 +117,7 @@ unsafe fn unsafe_capture(rect: &PixelRect) -> Result<Vec<u8>, String> {
 
 #[cfg(windows)]
 pub fn capture_absolute(rect: &PixelRect) -> Result<Vec<u8>, String> {
-    unsafe {
-        unsafe_capture(&rect)
-    }
+    unsafe { unsafe_capture(&rect) }
 }
 
 #[cfg(windows)]
@@ -154,24 +125,20 @@ pub fn capture_absolute_image(rect: &PixelRect) -> Result<image::RgbImage, Strin
     let raw: Vec<u8> = match capture_absolute(rect) {
         Err(s) => {
             return Err(s);
-        },
+        }
         Ok(v) => v,
     };
 
     let height = rect.height as u32;
     let width = rect.width as u32;
 
-    let mut img = ImageBuffer::from_fn(
-        width,
-        height,
-        move |x, y| {
-            let y = height - y - 1;
-            let b = raw[((y * width + x) * 4 + 0) as usize];
-            let g = raw[((y * width + x) * 4 + 1) as usize];
-            let r = raw[((y * width + x) * 4 + 2) as usize];
-            image::Rgb([r, g, b])
-        }
-    );
+    let img = ImageBuffer::from_fn(width, height, move |x, y| {
+        let y = height - y - 1;
+        let b = raw[((y * width + x) * 4 + 0) as usize];
+        let g = raw[((y * width + x) * 4 + 1) as usize];
+        let r = raw[((y * width + x) * 4 + 2) as usize];
+        image::Rgb([r, g, b])
+    });
 
     Ok(img)
 }
@@ -183,7 +150,8 @@ pub fn get_color(x: u32, y: u32) -> Color {
         top: y as i32,
         width: 1,
         height: 1,
-    }).unwrap();
+    })
+    .unwrap();
 
     let b = im[0];
     let g = im[1];

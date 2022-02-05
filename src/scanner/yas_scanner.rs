@@ -1,22 +1,23 @@
-use std::time::{SystemTime};
-use std::thread;
-use std::sync::mpsc;
-use std::convert::From;
 use std::collections::HashSet;
-use std::io::stdin;
+use std::convert::From;
 use std::fs;
+use std::sync::mpsc;
+use std::thread;
+use std::time::SystemTime;
 
+use clap::ArgMatches;
 use enigo::*;
-use log::{info, warn, error, debug};
-use clap::{ArgMatches};
+use log::{error, info, warn};
 
-use crate::info::info::ScanInfo;
-use crate::inference::inference::CRNNModel;
-use crate::common::{utils, RawImage, PixelRect, RawCaptureImage, PixelRectBound};
+use crate::artifact::internal_artifact::{
+    ArtifactSetKey, ArtifactSlotKey, ArtifactStat, CharacterKey, InternalArtifact,
+};
 use crate::capture;
 use crate::common::color::Color;
-use crate::artifact::internal_artifact::{ArtifactSlot, ArtifactStat, ArtifactSetName, InternalArtifact};
+use crate::common::{utils, PixelRect, PixelRectBound, RawCaptureImage};
+use crate::inference::inference::CRNNModel;
 use crate::inference::pre_process::pre_process;
+use crate::info::info::ScanInfo;
 
 pub struct YasScannerConfig {
     max_row: u32,
@@ -27,7 +28,6 @@ pub struct YasScannerConfig {
     number: u32,
     verbose: bool,
     dump_mode: bool,
-
     // offset_x: i32,
     // offset_y: i32,
 }
@@ -35,15 +35,34 @@ pub struct YasScannerConfig {
 impl YasScannerConfig {
     pub fn from_match(matches: &ArgMatches) -> YasScannerConfig {
         YasScannerConfig {
-            max_row: matches.value_of("max-row").unwrap_or("1000").parse::<u32>().unwrap(),
+            max_row: matches
+                .value_of("max-row")
+                .unwrap_or("1000")
+                .parse::<u32>()
+                .unwrap(),
             capture_only: matches.is_present("capture-only"),
             dump_mode: matches.is_present("dump"),
-            min_star: matches.value_of("min-star").unwrap_or("4").parse::<u32>().unwrap(),
-            max_wait_switch_artifact: matches.value_of("max-wait-switch-artifact").unwrap_or("500").parse::<u32>().unwrap(),
-            scroll_stop: matches.value_of("scroll-stop").unwrap_or("80").parse::<u32>().unwrap(),
-            number: matches.value_of("number").unwrap_or("0").parse::<u32>().unwrap(),
+            min_star: matches
+                .value_of("min-star")
+                .unwrap_or("4")
+                .parse::<u32>()
+                .unwrap(),
+            max_wait_switch_artifact: matches
+                .value_of("max-wait-switch-artifact")
+                .unwrap_or("500")
+                .parse::<u32>()
+                .unwrap(),
+            scroll_stop: matches
+                .value_of("scroll-stop")
+                .unwrap_or("80")
+                .parse::<u32>()
+                .unwrap(),
+            number: matches
+                .value_of("number")
+                .unwrap_or("0")
+                .parse::<u32>()
+                .unwrap(),
             verbose: matches.is_present("verbose"),
-
             // offset_x: matches.value_of("offset-x").unwrap_or("0").parse::<i32>().unwrap(),
             // offset_y: matches.value_of("offset-y").unwrap_or("0").parse::<i32>().unwrap(),
         }
@@ -73,7 +92,7 @@ pub struct YasScanner {
 }
 
 enum ScrollResult {
-    TLE,            // time limit exceeded
+    TLE, // time limit exceeded
     Interrupt,
     Success,
     Skip,
@@ -89,44 +108,54 @@ pub struct YasScanResult {
     sub_stat_3: String,
     sub_stat_4: String,
     level: String,
-    equip: String,
-    star: u32,
+    location: String,
+    rarity: u32,
+    lock: bool,
 }
 
 impl YasScanResult {
     pub fn to_internal_artifact(&self) -> Option<InternalArtifact> {
-        let set_name = ArtifactSetName::from_zh_cn(&self.name)?;
-        let slot = ArtifactSlot::from_zh_cn(&self.name)?;
-        let star = self.star;
+        let set_key = ArtifactSetKey::from_zh_cn(&self.name)?;
+        let slot_key = ArtifactSlotKey::from_zh_cn(&self.name)?;
+        let rarity = self.rarity;
         if !self.level.contains("+") {
             return None;
         }
-        let level = self.level.chars().skip(1).collect::<String>().parse::<u32>().ok()?;
+        let level = self
+            .level
+            .chars()
+            .skip(1)
+            .collect::<String>()
+            .parse::<u32>()
+            .ok()?;
         let main_stat = ArtifactStat::from_zh_cn_raw(
-            (self.main_stat_name.clone() + "+" + self.main_stat_value.as_str()).as_str()
+            (self.main_stat_name.clone() + "+" + self.main_stat_value.as_str()).as_str(),
         )?;
         let sub1 = ArtifactStat::from_zh_cn_raw(&self.sub_stat_1);
         let sub2 = ArtifactStat::from_zh_cn_raw(&self.sub_stat_2);
         let sub3 = ArtifactStat::from_zh_cn_raw(&self.sub_stat_3);
         let sub4 = ArtifactStat::from_zh_cn_raw(&self.sub_stat_4);
 
-        let equip = if self.equip.contains("已装备") {
-            Some(self.equip.chars().take(self.equip.len() - 3).collect::<String>())
+        let location = if self.location.contains("已装备") {
+            let len = self.location.chars().count();
+            let character_name: String = self.location.chars().take(len - 3).collect::<String>();
+            CharacterKey::from_zh_cn(&character_name)
         } else {
             None
         };
 
         let art = InternalArtifact {
-            set_name,
-            slot,
-            star,
+            set_key,
+            slot_key,
+            rarity,
             level,
+            location,
+            lock: self.lock,
             main_stat,
             sub_stat_1: sub1,
             sub_stat_2: sub2,
             sub_stat_3: sub3,
             sub_stat_4: sub4,
-            equip,
         };
         Some(art)
     }
@@ -151,7 +180,7 @@ impl YasScanner {
         YasScanner {
             model: CRNNModel::new(
                 String::from("model_training.onnx"),
-                String::from("index_2_word.json")
+                String::from("index_2_word.json"),
             ),
             enigo: Enigo::new(),
             info,
@@ -174,8 +203,12 @@ impl YasScanner {
 impl YasScanner {
     pub fn move_to(&mut self, row: u32, col: u32) {
         let info = &self.info;
-        let left = info.left + (info.left_margin + (info.art_width + info.art_gap_x) * col + info.art_width / 2) as i32;
-        let top = info.top + (info.top_margin + (info.art_height + info.art_gap_y) * row + info.art_height / 4) as i32;
+        let left = info.left
+            + (info.left_margin + (info.art_width + info.art_gap_x) * col + info.art_width / 2)
+                as i32;
+        let top = info.top
+            + (info.top_margin + (info.art_height + info.art_gap_y) * row + info.art_height / 4)
+                as i32;
         self.enigo.mouse_move_to(left as i32, top as i32);
     }
 
@@ -233,7 +266,9 @@ impl YasScanner {
             if state == 0 && !color.is_same(&self.initial_color) {
                 state = 1;
             } else if state == 1 && self.initial_color.is_same(&color) {
-                self.avg_scroll_one_row = (self.avg_scroll_one_row * self.scrolled_rows as f64 + count as f64) / (self.scrolled_rows as f64 + 1.0);
+                self.avg_scroll_one_row = (self.avg_scroll_one_row * self.scrolled_rows as f64
+                    + count as f64)
+                    / (self.scrolled_rows as f64 + 1.0);
                 info!("avg scroll/row: {}", self.avg_scroll_one_row);
                 self.scrolled_rows += 1;
                 return ScrollResult::Success;
@@ -303,7 +338,9 @@ impl YasScanner {
                 self.pool = pool;
                 // }
 
-                self.avg_switch_time = (self.avg_switch_time * self.scanned_count as f64 + now.elapsed().unwrap().as_millis() as f64) / (self.scanned_count as f64 + 1.0);
+                self.avg_switch_time = (self.avg_switch_time * self.scanned_count as f64
+                    + now.elapsed().unwrap().as_millis() as f64)
+                    / (self.scanned_count as f64 + 1.0);
                 self.scanned_count += 1;
                 // info!("avg switch time: {}ms", self.avg_switch_time);
                 return true;
@@ -314,7 +351,6 @@ impl YasScanner {
     }
 
     fn capture_panel(&mut self) -> Result<RawCaptureImage, String> {
-        let now = SystemTime::now();
         let w = self.info.panel_position.right - self.info.panel_position.left;
         let h = self.info.panel_position.bottom - self.info.panel_position.top;
         let rect: PixelRect = PixelRect {
@@ -335,7 +371,7 @@ impl YasScanner {
     fn get_star(&self) -> u32 {
         let color = capture::get_color(
             (self.info.star_x as i32 + self.info.left) as u32,
-            (self.info.star_y as i32 + self.info.top) as u32
+            (self.info.star_y as i32 + self.info.top) as u32,
         );
 
         let color_1 = Color::from(113, 119, 139);
@@ -344,7 +380,7 @@ impl YasScanner {
         let color_4 = Color::from(161, 86, 224);
         let color_5 = Color::from(188, 105, 50);
 
-        let mut min_dis: u32 = color_1.dis_2(&color);
+        let min_dis: u32 = color_1.dis_2(&color);
         let mut star = 1_u32;
         if color_2.dis_2(&color) < min_dis {
             star = 2;
@@ -362,50 +398,102 @@ impl YasScanner {
         star
     }
 
+    fn get_lock(&self, lock_last: bool) -> bool {
+        let color = capture::get_color(
+            (self.info.lock_x as i32 + self.info.left) as u32,
+            (self.info.lock_y as i32 + self.info.top) as u32,
+        );
+
+        let color_t = Color::from(73, 83, 102);
+        let color_f = Color::from(243, 239, 234);
+
+        if color_t.dis_2(&color) == 0 {
+            return true;
+        } else if color_f.dis_2(&color) == 0 {
+            return false;
+        } else {
+            return !lock_last; // switch animation
+        }
+    }
+
     fn start_capture_only(&mut self) {
-        fs::create_dir("captures");
+        fs::create_dir("captures").expect("Create dir error");
         let info = &self.info.clone();
 
         let count = self.info.art_count_position.capture_relative(info).unwrap();
-        count.to_gray_image().save("captures/count.png");
+        count
+            .to_gray_image()
+            .save("captures/count.png")
+            .expect("Save png error");
 
-        let convert_rect = |rect: &PixelRectBound| {
-            PixelRect {
-                left: rect.left - info.panel_position.left,
-                top: rect.top - info.panel_position.top,
-                width: rect.right - rect.left,
-                height: rect.bottom - rect.top,
-            }
+        let convert_rect = |rect: &PixelRectBound| PixelRect {
+            left: rect.left - info.panel_position.left,
+            top: rect.top - info.panel_position.top,
+            width: rect.right - rect.left,
+            height: rect.bottom - rect.top,
         };
 
         let panel = self.capture_panel().unwrap();
         let im_title = pre_process(panel.crop_to_raw_img(&convert_rect(&info.title_position)));
-        im_title.to_gray_image().save("captures/title.png").expect("Err");
-        let im_main_stat_name = pre_process(panel.crop_to_raw_img(&convert_rect(&info.main_stat_name_position)));
-        im_main_stat_name.to_gray_image().save("captures/main_stat_name.png").expect("Err");
-        let im_main_stat_value = pre_process(panel.crop_to_raw_img(&convert_rect(&info.main_stat_value_position)));
-        im_main_stat_value.to_gray_image().save("captures/main_stat_value.png").expect("Err");
-        let im_sub_stat_1 = pre_process(panel.crop_to_raw_img(&convert_rect(&info.sub_stat1_position)));
-        im_sub_stat_1.to_gray_image().save("captures/sub_stat_1.png").expect("Err");
-        let im_sub_stat_2 = pre_process(panel.crop_to_raw_img(&convert_rect(&info.sub_stat2_position)));
-        im_sub_stat_2.to_gray_image().save("captures/sub_stat_2.png").expect("Err");
-        let im_sub_stat_3 = pre_process(panel.crop_to_raw_img(&convert_rect(&info.sub_stat3_position)));
-        im_sub_stat_3.to_gray_image().save("captures/sub_stat_3.png").expect("Err");
-        let im_sub_stat_4 = pre_process(panel.crop_to_raw_img(&convert_rect(&info.sub_stat4_position)));
-        im_sub_stat_4.to_gray_image().save("captures/sub_stat_4.png").expect("Err");
+        im_title
+            .to_gray_image()
+            .save("captures/title.png")
+            .expect("Err");
+        let im_main_stat_name =
+            pre_process(panel.crop_to_raw_img(&convert_rect(&info.main_stat_name_position)));
+        im_main_stat_name
+            .to_gray_image()
+            .save("captures/main_stat_name.png")
+            .expect("Err");
+        let im_main_stat_value =
+            pre_process(panel.crop_to_raw_img(&convert_rect(&info.main_stat_value_position)));
+        im_main_stat_value
+            .to_gray_image()
+            .save("captures/main_stat_value.png")
+            .expect("Err");
+        let im_sub_stat_1 =
+            pre_process(panel.crop_to_raw_img(&convert_rect(&info.sub_stat1_position)));
+        im_sub_stat_1
+            .to_gray_image()
+            .save("captures/sub_stat_1.png")
+            .expect("Err");
+        let im_sub_stat_2 =
+            pre_process(panel.crop_to_raw_img(&convert_rect(&info.sub_stat2_position)));
+        im_sub_stat_2
+            .to_gray_image()
+            .save("captures/sub_stat_2.png")
+            .expect("Err");
+        let im_sub_stat_3 =
+            pre_process(panel.crop_to_raw_img(&convert_rect(&info.sub_stat3_position)));
+        im_sub_stat_3
+            .to_gray_image()
+            .save("captures/sub_stat_3.png")
+            .expect("Err");
+        let im_sub_stat_4 =
+            pre_process(panel.crop_to_raw_img(&convert_rect(&info.sub_stat4_position)));
+        im_sub_stat_4
+            .to_gray_image()
+            .save("captures/sub_stat_4.png")
+            .expect("Err");
         let im_level = pre_process(panel.crop_to_raw_img(&convert_rect(&info.level_position)));
-        im_level.to_gray_image().save("captures/level.png").expect("Err");
+        im_level
+            .to_gray_image()
+            .save("captures/level.png")
+            .expect("Err");
         let im_equip = pre_process(panel.crop_to_raw_img(&convert_rect(&info.equip_position)));
-        im_equip.to_gray_image().save("captures/equip.png").expect("Err");
+        im_equip
+            .to_gray_image()
+            .save("captures/equip.png")
+            .expect("Err");
     }
 
-    pub fn start(&mut self) -> Vec<InternalArtifact> {
+    pub fn scan(&mut self) -> Vec<InternalArtifact> {
         if self.config.capture_only {
             self.start_capture_only();
             return Vec::new();
         }
 
-        let mut count = match self.get_art_count() {
+        let count = match self.get_art_count() {
             Ok(v) => v,
             Err(_) => 1000,
         };
@@ -424,20 +512,20 @@ impl YasScanner {
         //     count = s.trim().parse::<u32>().unwrap();
         // }
 
-        info!("detected count: {}", count);
-        info!("total row: {}", total_row);
-        info!("last column: {}", last_row_col);
+        // info!("detected count: {}", count);
+        // info!("total row: {}", total_row);
+        // info!("last column: {}", last_row_col);
 
-        let (tx, rx) = mpsc::channel::<Option<(RawCaptureImage, u32)>>();
+        let (tx, rx) = mpsc::channel::<Option<(RawCaptureImage, u32, bool)>>();
         let info_2 = self.info.clone();
         // v bvvmnvbm
         let is_verbose = self.config.verbose;
         let is_dump_mode = self.config.dump_mode;
         let handle = thread::spawn(move || {
             let mut results: Vec<InternalArtifact> = Vec::new();
-            let mut model = CRNNModel::new(
+            let model = CRNNModel::new(
                 String::from("model_training.onnx"),
-                String::from("index_2_word.json")
+                String::from("index_2_word.json"),
             );
             let mut error_count = 0;
             let mut dup_count = 0;
@@ -450,17 +538,15 @@ impl YasScanner {
                 fs::create_dir("dumps").expect("Err");
             }
 
-            let convert_rect = |rect: &PixelRectBound| {
-                PixelRect {
-                    left: rect.left - info.panel_position.left,
-                    top: rect.top - info.panel_position.top,
-                    width: rect.right - rect.left,
-                    height: rect.bottom - rect.top,
-                }
+            let convert_rect = |rect: &PixelRectBound| PixelRect {
+                left: rect.left - info.panel_position.left,
+                top: rect.top - info.panel_position.top,
+                width: rect.right - rect.left,
+                height: rect.bottom - rect.top,
             };
 
             for i in rx {
-                let (capture, star) = match i {
+                let (capture, rarity, lock) = match i {
                     Some(v) => v,
                     None => break,
                 };
@@ -469,25 +555,33 @@ impl YasScanner {
                 let model_inference = |pos: &PixelRectBound, name: &str, cnt: i32| {
                     let raw_img = capture.crop_to_raw_img(&convert_rect(pos));
                     if is_dump_mode {
-                        raw_img.grayscale_to_gray_image().save(format!("dumps/{}_{}.png", name, cnt)).expect("Err");
+                        raw_img
+                            .grayscale_to_gray_image()
+                            .save(format!("dumps/{}_{}.png", name, cnt))
+                            .expect("Err");
                     }
 
                     let processed_img = pre_process(raw_img);
                     if is_dump_mode {
-                        processed_img.to_gray_image().save(format!("dumps/p_{}_{}.png", name, cnt)).expect("Err");
+                        processed_img
+                            .to_gray_image()
+                            .save(format!("dumps/p_{}_{}.png", name, cnt))
+                            .expect("Err");
                     }
-                    
                     let inference_result = model.inference_string(&processed_img);
                     if is_dump_mode {
-                        fs::write(format!("dumps/{}_{}.txt", name, cnt), &inference_result).expect("Err");
+                        fs::write(format!("dumps/{}_{}.txt", name, cnt), &inference_result)
+                            .expect("Err");
                     }
 
                     inference_result
                 };
 
                 let str_title = model_inference(&info.title_position, "title", cnt);
-                let str_main_stat_name = model_inference(&info.main_stat_name_position, "main_stat_name", cnt);
-                let str_main_stat_value = model_inference(&info.main_stat_value_position, "main_stat_value", cnt);
+                let str_main_stat_name =
+                    model_inference(&info.main_stat_name_position, "main_stat_name", cnt);
+                let str_main_stat_value =
+                    model_inference(&info.main_stat_value_position, "main_stat_value", cnt);
 
                 let str_sub_stat_1 = model_inference(&info.sub_stat1_position, "sub_stat_1", cnt);
                 let str_sub_stat_2 = model_inference(&info.sub_stat2_position, "sub_stat_2", cnt);
@@ -500,7 +594,7 @@ impl YasScanner {
                 cnt += 1;
 
                 // let predict_time = now.elapsed().unwrap().as_millis();
-                // println!("predict time: {}ms", predict_time);                
+                // println!("predict time: {}ms", predict_time);
 
                 let result = YasScanResult {
                     name: str_title,
@@ -511,8 +605,9 @@ impl YasScanner {
                     sub_stat_3: str_sub_stat_3,
                     sub_stat_4: str_sub_stat_4,
                     level: str_level,
-                    equip: str_equip,
-                    star,
+                    location: str_equip,
+                    rarity,
+                    lock,
                 };
                 if is_verbose {
                     info!("{:?}", result);
@@ -527,8 +622,9 @@ impl YasScanner {
                     } else {
                         consecutive_dup_count = 0;
                         hash.insert(a.clone());
-                        results.push(a);
+                        // results.push(a);
                     }
+                    results.push(a);
                 } else {
                     error!("wrong detection: {:?}", result);
                     error_count += 1;
@@ -546,10 +642,10 @@ impl YasScanner {
             results
         });
 
-
         let mut scanned_row = 0_u32;
         let mut scanned_count = 0_u32;
         let mut start_row = 0_u32;
+        let mut lock = false;
 
         self.move_to(0, 0);
         self.enigo.mouse_click(MouseButton::Left);
@@ -557,9 +653,13 @@ impl YasScanner {
         self.sample_initial_color();
 
         'outer: while scanned_count < count {
-            'row: for row in start_row..self.row {
-                let c = if scanned_row == total_row - 1 { last_row_col } else { self.col };
-                'col: for col in 0..c {
+            for row in start_row..self.row {
+                let c = if scanned_row == total_row - 1 {
+                    last_row_col
+                } else {
+                    self.col
+                };
+                for col in 0..c {
                     // 大于最大数量则退出
                     if scanned_count > count {
                         break 'outer;
@@ -580,7 +680,9 @@ impl YasScanner {
                     if star < self.config.min_star {
                         break 'outer;
                     }
-                    tx.send(Some((capture, star))).unwrap();
+                    lock = self.get_lock(lock);
+                    // info!("locked: {}", lock);
+                    tx.send(Some((capture, star, lock))).unwrap();
 
                     scanned_count += 1;
                 } // end 'col
@@ -601,7 +703,7 @@ impl YasScanner {
                 ScrollResult::TLE => {
                     error!("翻页出现问题");
                     break 'outer;
-                },
+                }
                 ScrollResult::Interrupt => break 'outer,
                 _ => (),
             }
@@ -615,5 +717,59 @@ impl YasScanner {
         let results: Vec<InternalArtifact> = handle.join().unwrap();
         info!("count: {}", results.len());
         results
+    }
+    pub fn flip_lock(&mut self, indices: Vec<u32>) {
+        let mut indices = indices;
+        indices.sort();
+
+        let count = match self.get_art_count() {
+            Ok(v) => v,
+            Err(_) => 1000,
+        };
+        if indices[indices.len() - 1] > count {
+            error!("指标超出范围");
+            return;
+        }
+        self.sample_initial_color();
+
+        let total_row = (count + self.col - 1) / self.col;
+        let mut scanned_row = 0_u32;
+        let mut start_row = 0_u32;
+
+        for index in indices {
+            let row: u32 = index / self.col;
+            let col: u32 = index % self.col;
+            while row >= scanned_row + self.row {
+                scanned_row += self.row;
+                let remain_row = total_row - scanned_row;
+                let scroll_row = remain_row.min(self.row);
+                start_row = self.row - scroll_row;
+                match self.scroll_rows(scroll_row) {
+                    ScrollResult::TLE => {
+                        error!("翻页出现问题");
+                        break;
+                    }
+                    ScrollResult::Interrupt => break,
+                    _ => (),
+                }
+            }
+            // 右键终止
+            if utils::is_rmb_down() {
+                break;
+            }
+            // info!("{} {} {}", index, row, col);
+
+            self.move_to(row - scanned_row + start_row, col);
+            self.enigo.mouse_click(MouseButton::Left);
+            // self.wait_until_switched();
+            utils::sleep(100);
+
+            let left: i32 = self.info.left + self.info.lock_x as i32;
+            let top: i32 = self.info.top + self.info.lock_y as i32;
+            self.enigo.mouse_move_to(left, top);
+            self.enigo.mouse_click(MouseButton::Left);
+            utils::sleep(100);
+            self.move_to(row - scanned_row + start_row, col);
+        }
     }
 }

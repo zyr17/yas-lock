@@ -1,4 +1,4 @@
-use crate::common::{PixelRect, PixelRectBound};
+use crate::common::PixelRectBound;
 
 #[derive(Clone)]
 pub struct ScanInfo {
@@ -42,6 +42,9 @@ pub struct ScanInfo {
     pub star_x: u32,
     pub star_y: u32,
 
+    pub lock_x: u32,
+    pub lock_y: u32,
+
     pub pool_position: PixelRectBound,
 }
 
@@ -49,7 +52,13 @@ fn get_scalar(value: f32, src: u32, dst: u32) -> u32 {
     (value as f64 * (dst as f64) / (src as f64)).round() as u32
 }
 
-fn get_rect(rect: (u32, u32, u32, u32), src_h: u32, src_w: u32, dst_h: u32, dst_w: u32) -> PixelRectBound {
+fn get_rect(
+    rect: (u32, u32, u32, u32),
+    src_h: u32,
+    src_w: u32,
+    dst_h: u32,
+    dst_w: u32,
+) -> PixelRectBound {
     let left = get_scalar(rect.0 as f32, src_w, dst_w);
     let top = get_scalar(rect.1 as f32, src_h, dst_h);
     let right = get_scalar(rect.2 as f32, src_w, dst_w);
@@ -68,14 +77,11 @@ impl ScanInfo {
         let w: u32 = 1600;
         let h: u32 = 900;
 
-        let my_get_rect = |rect: (u32, u32, u32, u32)| {
-            get_rect(rect, h, w, height, width)
-        };
+        let my_get_rect = |rect: (u32, u32, u32, u32)| get_rect(rect, h, w, height, width);
 
         let info = ScanInfo {
             // panel_height: get_scalar(700.0, w, width),
             // panel_width: get_scalar(410.0, h, height),
-
             title_position: my_get_rect((1099, 107, 1359, 139)),
             main_stat_name_position: my_get_rect((1099, 211, 1230, 247)),
             main_stat_value_position: my_get_rect((1099, 247, 1243, 290)),
@@ -112,6 +118,9 @@ impl ScanInfo {
             star_x: get_scalar(1452.0, w, width),
             star_y: get_scalar(124.0, h, height),
 
+            lock_x: get_scalar(1437.0, w, width),
+            lock_y: get_scalar(356.0, h, height),
+
             pool_position: my_get_rect((1181, 117, 1210, 456)),
         };
 
@@ -122,14 +131,11 @@ impl ScanInfo {
         let w: u32 = 1440;
         let h: u32 = 900;
 
-        let my_get_rect = |rect: (u32, u32, u32, u32)| {
-            get_rect(rect, h, w, height, width)
-        };
+        let my_get_rect = |rect: (u32, u32, u32, u32)| get_rect(rect, h, w, height, width);
 
         let info = ScanInfo {
             // panel_height: get_scalar(700.0, w, width),
             // panel_width: get_scalar(410.0, h, height),
-
             title_position: my_get_rect((990, 95, 1240, 125)),
             main_stat_name_position: my_get_rect((990, 194, 1105, 223)),
             main_stat_value_position: my_get_rect((990, 223, 1105, 262)),
@@ -166,6 +172,9 @@ impl ScanInfo {
             star_x: get_scalar(1310.0, w, width),
             star_y: get_scalar(111.0, h, height),
 
+            lock_x: get_scalar(1294.0, w, width),
+            lock_y: get_scalar(320.0, h, height),
+
             pool_position: my_get_rect((1081, 100, 1092, 408)),
         };
 
@@ -176,9 +185,7 @@ impl ScanInfo {
         let w: u32 = 1280;
         let h: u32 = 960;
 
-        let my_get_rect = |rect: (u32, u32, u32, u32)| {
-            get_rect(rect, h, w, height, width)
-        };
+        let my_get_rect = |rect: (u32, u32, u32, u32)| get_rect(rect, h, w, height, width);
 
         let info = ScanInfo {
             title_position: my_get_rect((880, 85, 1092, 110)),
@@ -216,6 +223,9 @@ impl ScanInfo {
 
             star_x: get_scalar(1162.0, w, width),
             star_y: get_scalar(100.0, h, height),
+
+            lock_x: get_scalar(1150.0, w, width),
+            lock_y: get_scalar(285.0, h, height),
 
             pool_position: my_get_rect((959, 95, 974, 365)),
         };
