@@ -49,7 +49,7 @@ impl YasScannerConfig {
                 .unwrap(),
             max_wait_switch_artifact: matches
                 .value_of("max-wait-switch-artifact")
-                .unwrap_or("500")
+                .unwrap_or("800")
                 .parse::<u32>()
                 .unwrap(),
             scroll_stop: matches
@@ -168,7 +168,7 @@ fn calc_pool(row: &Vec<u8>) -> f64 {
     for i in 0..len {
         pool += row[i * 4] as f64;
     }
-    pool /= len as f64;
+    // pool /= len as f64;
     pool
 }
 

@@ -7,6 +7,7 @@ use std::io::Write;
 use std::path::Path;
 use std::time::SystemTime;
 
+use yas::capture::capture_absolute_image;
 use yas::common::utils;
 use yas::expo::genmo::GenmoFormat;
 use yas::expo::good::GoodFormat;
@@ -208,7 +209,7 @@ fn main() {
     // info!("detected width: {}", rect.width);
     // info!("detected height: {}", rect.height);
 
-    // let temp = capture_absolute_image(&rect).unwrap().save("test.png");
+    // capture_absolute_image(&rect).unwrap().save("test.png");
 
     let mut info: info::ScanInfo;
     if rect.height * 16 == rect.width * 9 {
