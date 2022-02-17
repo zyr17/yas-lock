@@ -134,8 +134,8 @@ pub const WINDOW_16_9: WindowInfo = WindowInfo {
     star_x: 1469.4,
     star_y: 123.9,
 
-    lock_x: 1451.0,
-    lock_y: 356.0,
+    lock_x: 1450.0,
+    lock_y: 357.0,
 
     pool_pos: Rect(118.2, 1144.7 + 15.0, 510.3, 1144.7),
 };
@@ -166,8 +166,8 @@ pub const WINDOW_8_5: WindowInfo = WindowInfo {
     flag_y: 82.1,
     star_x: 1321.3,
     star_y: 111.3,
-    lock_x: 1306.0,
-    lock_y: 321.0,
+    lock_x: 1305.0,
+    lock_y: 322.0,
     pool_pos: Rect(103.6, 1025.8 + 15.0, 460.7, 1028.5),
 };
 
@@ -198,6 +198,6 @@ pub const WINDOW_4_3: WindowInfo = WindowInfo {
     star_x: 1175.4,
     star_y: 95.8,
     lock_x: 1160.0,
-    lock_y: 285.0,
+    lock_y: 286.0,
     pool_pos: Rect(93.2, 912.7 + 15.0, 412.4, 912.7),
 };

@@ -403,13 +403,14 @@ impl YasScanner {
             (self.info.lock_x as i32 + self.info.left) as u32,
             (self.info.lock_y as i32 + self.info.top) as u32,
         );
+        // info!("Lock color: {} {} {}", color.0, color.1, color.2);
 
         let color_t = Color::from(73, 83, 102);
-        let color_f = Color::from(243, 239, 234);
+        let color_f = Color::from(241, 237, 232);
 
-        if color_t.dis_2(&color) == 0 {
+        if color_t.dis_2(&color) <= 3 {
             return true;
-        } else if color_f.dis_2(&color) == 0 {
+        } else if color_f.dis_2(&color) <= 3 {
             return false;
         } else {
             return !lock_last; // switch animation
@@ -673,7 +674,8 @@ impl YasScanner {
                     self.move_to(row, col);
                     self.enigo.mouse_click(MouseButton::Left);
 
-                    self.wait_until_switched();
+                    // self.wait_until_switched();
+                    utils::sleep(80);
 
                     let capture = self.capture_panel().unwrap();
                     let star = self.get_star();
